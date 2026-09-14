@@ -37,6 +37,7 @@ class HaloSettings(BaseSettings):
 
     # --- Misc --------------------------------------------------------
     halo_max_log_lines: int = 50
+    halo_task_max_retries: int = 3
 
 
 halo_settings = HaloSettings()

@@ -96,8 +96,13 @@ class OpenClawOrchestrator:
         task: str,
         target_file: str,
         target_dir: str | None = None,
+        feedback: str | None = None,
     ) -> str:
-        """Assemble task + AST skeleton + vector-retrieval context."""
+        """Assemble task + AST skeleton + vector-retrieval context.
+
+        ``feedback`` contains the error of a failed previous patch
+        attempt and is injected so the LLM can produce a corrected diff.
+        """
         skeleton = self.ast_parser.extract_skeleton(target_file)
 
         content = Path(target_file).read_text(encoding="utf-8")
@@ -132,8 +137,17 @@ class OpenClawOrchestrator:
             )
         retrieval = "\n\n".join(snippet_blocks) or "(no indexed context)"
 
+        feedback_block = (
+            "## Previous attempt — FIX THIS\n"
+            f"```\n{feedback}\n```\n"
+            "The last diff was rejected. Produce a corrected unified diff: "
+            "exact hunk headers and byte-identical context lines copied from "
+            "the numbered file.\n\n"
+        ) if feedback else ""
+
         return (
-            f"## Task\n{task}\n\n"
+            feedback_block
+            + f"## Task\n{task}\n\n"
             f"## Target file: {rel_path}\n\n"
             f"## AST skeleton (Halo Blade)\n```\n{skeleton}\n```\n\n"
             f"## Retrieved code context (Halo Vector)\n"
@@ -148,10 +162,13 @@ class OpenClawOrchestrator:
         task: str,
         target_file: str,
         target_dir: str | None = None,
+        feedback: str | None = None,
     ) -> str:
         """Ask the LLM for a unified diff that performs ``task`` on
-        ``target_file`` and return the normalized diff text."""
-        prompt = self.build_context(task, target_file, target_dir)
+        ``target_file`` and return the normalized diff text. ``feedback``
+        (error text of a failed previous attempt) is injected into the
+        prompt so the LLM can produce a corrected diff."""
+        prompt = self.build_context(task, target_file, target_dir, feedback=feedback)
         response = self.llm.chat.completions.create(
             model=self._resolve_llm_model(),
             messages=[
