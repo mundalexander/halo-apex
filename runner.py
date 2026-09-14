@@ -174,10 +174,25 @@ class TaskRunner:
 
         max_attempts = max(1, self.settings.halo_task_max_retries)
         feedback: str | None = None
+        print(f"[halo-apex] target : {rel} (repo: {repo_root})", flush=True)
+        print(f"[halo-apex] branch : {branch}", flush=True)
 
         for attempt in range(1, max_attempts + 1):
-            diff_text = orchestrator.request_diff(
-                task, str(file_path), target_dir=str(repo_root), feedback=feedback
+            print(
+                f"[halo-apex] attempt {attempt}/{max_attempts}: requesting diff ...",
+                flush=True,
+            )
+            try:
+                diff_text = orchestrator.request_diff(
+                    task, str(file_path), target_dir=str(repo_root), feedback=feedback
+                )
+            except Exception as exc:
+                feedback = f"Attempt {attempt}: LLM request failed: {exc}"
+                print(f"[halo-apex] LLM error: {exc}", flush=True)
+                continue
+            print(
+                f"[halo-apex] diff received ({len(diff_text.splitlines())} lines), applying ...",
+                flush=True,
             )
             with tempfile.NamedTemporaryFile(
                 "w", suffix=".diff", delete=False, encoding="utf-8"
@@ -189,6 +204,7 @@ class TaskRunner:
                 self.file_ops.apply_patch(str(diff_path), target_dir=str(repo_root))
             except RuntimeError as exc:
                 feedback = f"Attempt {attempt}: git apply rejected the diff.\n{exc}"
+                print("[halo-apex] git apply rejected the diff, retrying ...", flush=True)
                 continue
             finally:
                 diff_path.unlink(missing_ok=True)
@@ -198,7 +214,9 @@ class TaskRunner:
             if gate_error:
                 _git(repo_root, "checkout", "--", str(rel))
                 feedback = f"Attempt {attempt}: verification failed.\n{gate_error}"
+                print("[halo-apex] verification failed, rolled back, retrying ...", flush=True)
                 continue
+            print("[halo-apex] verification passed, committing ...", flush=True)
 
             # --- Success: commit on the task branch ------------------------
             _git(repo_root, "add", str(rel))
