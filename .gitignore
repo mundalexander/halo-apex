@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Virtual environment
+venv/
+
+# Vector database
+halo_chroma_db/
+
+# Local configuration (keep .env.example instead)
+.env
