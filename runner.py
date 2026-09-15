@@ -20,6 +20,7 @@ from __future__ import annotations
 import re
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -137,6 +138,7 @@ class TaskRunner:
     # ------------------------------------------------------------------
     def run_task(self, task: str, file_path: Path) -> dict[str, Any]:
         """Run ``task`` on ``file_path`` with the full production safety ring."""
+        started = time.time()
         file_path = file_path.resolve()
         repo_root = Path(
             _git(file_path.parent, "rev-parse", "--show-toplevel").stdout.strip()
@@ -230,6 +232,8 @@ class TaskRunner:
                 "branch": branch,
                 "commit": commit,
                 "file": str(rel),
+                "attempts": attempt,
+                "duration_seconds": round(time.time() - started, 1),
                 "diffstat": _git(
                     repo_root, "show", "--stat", "--oneline", "HEAD"
                 ).stdout.strip(),

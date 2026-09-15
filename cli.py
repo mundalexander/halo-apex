@@ -60,6 +60,10 @@ def task(task, file_path):
     click.echo(f"  branch : {result['branch']}")
     click.echo(f"  commit : {result['commit']}")
     click.echo(f"  file   : {result['file']}")
+    click.echo(
+        f"  stats  : attempt {result['attempts']}, "
+        f"{result['duration_seconds']}s end-to-end"
+    )
     click.echo(f"  {result['note']}")
     click.echo(result["diffstat"])
 
