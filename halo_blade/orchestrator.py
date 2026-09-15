@@ -178,7 +178,18 @@ class OpenClawOrchestrator:
             temperature=0.0,
         )
         raw = response.choices[0].message.content or ""
-        return self.normalize_diff(raw)
+        diff = self.normalize_diff(raw)
+        if "@@" not in diff:
+            # Some backends (e.g. certain Ollama builds) route the model
+            # output into a separate "reasoning" channel and leave
+            # "content" empty or header-only. Fall back to the reasoning
+            # channel and extract the diff from it.
+            reasoning = (
+                getattr(response.choices[0].message, "reasoning", None) or ""
+            )
+            if reasoning.strip():
+                diff = self.normalize_diff(reasoning)
+        return diff
 
     # ------------------------------------------------------------------
     @staticmethod
