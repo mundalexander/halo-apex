@@ -120,13 +120,18 @@ class TaskRunner:
         if path.is_file():
             files = [path]
         else:
-            files = [
-                p
-                for p in sorted(path.rglob("*.py"))
-                if "venv" not in p.parts
-                and "__pycache__" not in p.parts
-                and not any(part.startswith(".") for part in p.parts)
-            ]
+            # Filter RELATIVE to the indexed root: dot-dirs, venv and
+            # __pycache__ *inside* the tree are skipped. Ancestors of the
+            # root (e.g. ~/.openclaw) must never exclude the whole tree.
+            root = path.resolve()
+            files = []
+            for p in sorted(path.rglob("*.py")):
+                rel = p.resolve().relative_to(root)
+                if any(part.startswith(".") for part in rel.parts):
+                    continue
+                if any(part in ("venv", "__pycache__") for part in rel.parts):
+                    continue
+                files.append(p)
         count = 0
         for f in files:
             text = f.read_text(encoding="utf-8")
