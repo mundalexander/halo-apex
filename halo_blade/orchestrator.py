@@ -61,7 +61,7 @@ class OpenClawOrchestrator:
         llm_base_url: str,
         llm_model: str = "",
         vector_engine: VectorSearch | None = None,
-        timeout: float = 180.0,
+        timeout: float = 600.0,
     ) -> None:
         self.llm_base_url = llm_base_url.rstrip("/")
         self.ast_parser = ASTCodeParser()
